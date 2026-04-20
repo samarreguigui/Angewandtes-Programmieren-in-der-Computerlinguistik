@@ -23,7 +23,7 @@ def best_casing(freq: dict[str, int]) -> dict[str, int]:
     """
     Falls ein Wort in zwei Schreibungen vorkommt,
     behalten wir nur die häufigere Variante.
-    Rückgabe:  Häufigkeits-Dictionary.
+    Rückgabe: Häufigkeits-Dictionary.
     """
     grouped = defaultdict(lambda: defaultdict(int))
 
