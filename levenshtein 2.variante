@@ -1,0 +1,102 @@
+import sys
+
+
+def levenshtein(a, b):
+    n, m = len(a), len(b)
+
+    # Die Tabelle d speichert Paare: (Distanzwert, Liste_der_Pfeile)
+    # Ein Pfeil kann sein: 'DIAG', 'OBEN', 'LINKS'
+    d = [[[0, []] for _ in range(m + 1)] for _ in range(n + 1)]
+
+    # Initialisierung der Ränder mit Pfeilen
+    for i in range(1, n + 1):
+        d[i][0][0] = i
+        d[i][0][1] = ['OBEN']
+    for j in range(1, m + 1):
+        d[0][j][0] = j
+        d[0][j][1] = ['LINKS']
+
+    # Füllen der Tabelle und Speichern der optimalen Schritte
+    for i in range(1, n + 1):
+        for j in range(1, m + 1):
+            cost = 0 if a[i - 1] == b[j - 1] else 1
+
+            # Mögliche Wege berechnen
+            v_oben = d[i - 1][j][0] + 1
+            v_links = d[i][j - 1][0] + 1
+            v_diag = d[i - 1][j - 1][0] + cost
+
+            # Minimum finden
+            min_val = min(v_oben, v_links, v_diag)
+            d[i][j][0] = min_val
+
+            # Schritte explizit "speichern"
+            # prüfen alle drei, falls mehrere Wege gleich gut sind
+            if v_diag == min_val:
+                d[i][j][1].append('DIAG')
+            if v_oben == min_val:
+                d[i][j][1].append('OBEN')
+            if v_links == min_val:
+                d[i][j][1].append('LINKS')
+
+    return d
+
+
+def collect_alignments(d, a, b, i, j):
+    # Basisfall: Zurück am Startpunkt (0,0)
+    if i == 0 and j == 0:
+        return [("", "")]
+
+    all_alignments = []
+
+    # Nutzen nur gespeicherten Schritte aus der Matrix d[i][j][1]
+    for pfeil in d[i][j][1]:
+        if pfeil == 'DIAG':
+            # Diagonaler Schritt (Match oder Ersetzung)
+            for res_a, res_b in collect_alignments(d, a, b, i - 1, j - 1):
+                all_alignments.append((res_a + a[i - 1], res_b + b[j - 1]))
+        elif pfeil == 'OBEN':
+            # Schritt von oben (Löschung in a)
+            for res_a, res_b in collect_alignments(d, a, b, i - 1, j):
+                all_alignments.append((res_a + a[i - 1], res_b + "-"))
+        elif pfeil == 'LINKS':
+            # Schritt von links (Einfügung in a)
+            for res_a, res_b in collect_alignments(d, a, b, i, j - 1):
+                all_alignments.append((res_a + "-", res_b + b[j - 1]))
+
+    return all_alignments
+
+
+def main():
+    if len(sys.argv) < 2:
+        print("Aufruf: python levenshtein.py wordpairs.txt")
+        return
+
+    try:
+        with open(sys.argv[1], "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or "\t" not in line:
+                    continue
+
+                word_a, word_b = line.split("\t")
+
+                # 1. Tabelle berechnen und Wege speichern
+                matrix = levenshtein(word_a, word_b)
+                dist = matrix[len(word_a)][len(word_b)][0]
+
+                print(f"\n{word_a}-{word_b}: {dist}")
+
+                # 2. Alignments anhand gespeicherten Pfeile
+                aligns = collect_alignments(matrix, word_a, word_b, len(word_a), len(word_b))
+
+                for a_str, b_str in aligns:
+                    formatted = " ".join([f"{ca}:{cb}" for ca, cb in zip(a_str, b_str)])
+                    print(formatted)
+
+    except FileNotFoundError:
+        print("Datei nicht gefunden.")
+
+
+if __name__ == "__main__":
+    main()
